@@ -132,7 +132,7 @@ struct MooreState
 
 	MooreState() = default;
 
-	explicit MooreState(const State& state)
+	MooreState(const State& state)
 		: m_state(state)
 	{
 	}

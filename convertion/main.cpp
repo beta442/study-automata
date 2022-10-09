@@ -3,9 +3,10 @@
 #include "include/ArgParse/ParseArgs.h"
 #include "include/CSV/csv.hpp"
 
-#include "include/Automata/MooreTable.hpp"
-#include "include/Automata/MealyTable.hpp"
-#include "include/Automata/State.hpp"
+#include "include/Automata/MealyTableReader.hpp"
+#include "include/Automata/MooreTableReader.hpp"
+
+#include "include/Automata/MealyMooreTable.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -18,16 +19,31 @@ int main(int argc, char* argv[])
 
 	try
 	{
+		auto reader = csv::CSVReader(inputFileName);
 		std::ofstream oFS{ outputFileName };
 
 		if (mode == MEALY_TO_MOORE)
 		{
-			auto mealyTable = MealyTable{ inputFileName };
-			auto mooreTable = MooreTable{ mealyTable };
+			auto mealyTableReader = MealyTableReader{ reader };
+			auto mooreTable = MooreTable{
+				MealyTable{
+					mealyTableReader.GetMealyStates(),
+					mealyTableReader.GetStates(),
+					mealyTableReader.GetTransitions() }
+			};
 			oFS << mooreTable;
 		}
 		if (mode == MOORE_TO_MEALY)
 		{
+			auto mooreTableReader = MooreTableReader{ reader };
+			auto mealyTable = MealyTable{
+				MooreTable{
+					mooreTableReader.GetSignals(),
+					mooreTableReader.GetStates(),
+					mooreTableReader.GetTransitions(),
+					mooreTableReader.GetMooreTable() }
+			};
+			oFS << mealyTable;
 		}
 	}
 	catch (const std::exception& e)
