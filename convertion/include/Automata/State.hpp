@@ -32,7 +32,7 @@ struct Signal
 	{
 	}
 
-	explicit Signal(const Signal& other)
+	Signal(const Signal& other)
 		: m_index(other.m_index)
 		, m_label(other.m_label)
 	{
@@ -95,19 +95,19 @@ struct Signal
 	template <typename T>
 	bool operator==(T&& other) const noexcept
 	{
-		return (m_index == std::forward<decltype(other.m_index)>(other.m_index)) && (m_label == std::forward<decltype(other.m_label)>(other.m_label));
+		return (m_index == other.m_index) && (m_label == other.m_label);
 	}
 
 	template <typename T>
 	bool operator<(T&& other) const
 	{
-		bool labelsAreEqual = (m_label == std::forward<decltype(other.m_label)>(other.m_label));
+		bool labelsAreEqual = (m_label == other.m_label);
 		if (!labelsAreEqual)
 		{
 			throw std::invalid_argument(state_excps::FAILED_LESS_COMPARE_SIGNAL_MSG);
 		}
 
-		return labelsAreEqual && (m_index < std::forward<decltype(other.m_index)>(other.m_index));
+		return labelsAreEqual && (m_index < other.m_index);
 	}
 
 	friend std::ostream& operator<<(std::ostream& lhs, const Signal& rhs)
@@ -208,7 +208,7 @@ struct MealyState
 	template <typename T>
 	bool operator==(T&& other) const noexcept
 	{
-		return (m_state == std::forward<decltype(other.m_state)>(other.m_state)) && (m_signal == std::forward<decltype(other.m_signal)>(other.m_signal));
+		return (m_state == other.m_state) && (m_signal == other.m_signal);
 	}
 
 	friend std::ostream& operator<<(std::ostream& lhs, const MealyState& rhs)
