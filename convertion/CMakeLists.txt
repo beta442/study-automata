@@ -3,14 +3,15 @@ cmake_minimum_required(VERSION 3.20)
 project(convert)
 
 set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -O2")
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 set(ENTRY_POINT
                "main.cpp")
 set(HEADERS_ROOT_PATH
-                     "${convert_SOURCE_DIR}/include")
+                     "${CMAKE_CURRENT_SOURCE_DIR}/include")
 set(SRC_ROOT_PATH
-                 "${convert_SOURCE_DIR}/src")
+                 "${CMAKE_CURRENT_SOURCE_DIR}/src")
 file(
     GLOB_RECURSE SOURCE_LIST
     "${SRC_ROOT_PATH}/*.c*"
@@ -21,6 +22,8 @@ file(
     GLOB_RECURSE HEADERS_LIST
     "${HEADERS_ROOT_PATH}/*.h*"
 )
+
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_executable(
               ${PROJECT_NAME}
