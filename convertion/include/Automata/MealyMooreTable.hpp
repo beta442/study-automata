@@ -309,9 +309,13 @@ void MealyTable::ComputeMealyStatesFromMoore(const MooreTable& mooreTable)
 			for (size_t i = 0; i < field.m_state.m_index; ++i)
 			{
 				++itSignals;
+				if (itSignals == mooreTable.GetSignals().end())
+				{
+					throw std::out_of_range("Failed to fill Mealy Table from Moore");
+				}
 			}
 			(*itStates).emplace_back(MealyState{
-				field.m_state, *(itSignals)
+				field.m_state, (*itSignals)
 			});
 		}
 		++itStates;
