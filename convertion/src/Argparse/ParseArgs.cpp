@@ -29,7 +29,7 @@ argparse::ArgumentParser ParseArgs(int argc, char* argv[])
 			throw std::invalid_argument("Wrong " + std::string(MODE_PAR) + " provided");
 		}
 	}
-	catch (const std::runtime_error& err)
+	catch (const std::exception& err)
 	{
 		std::cerr << err.what() << std::endl;
 		std::cerr << program;

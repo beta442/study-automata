@@ -146,13 +146,13 @@ struct MooreState
 	template <typename T>
 	bool operator==(T&& other) const noexcept
 	{
-		return m_state == std::forward<decltype(other.m_state)>(other.m_state);
+		return m_state == other.m_state;
 	}
 
 	template <typename T>
 	bool operator<(T&& other) const
 	{
-		return m_state < std::forward<decltype(other.m_state)>(other.m_state);
+		return m_state < other.m_state;
 	}
 
 	friend std::ostream& operator<<(std::ostream& lhs, const MooreState& rhs)
