@@ -9,8 +9,8 @@
 namespace state_excps
 {
 
-constexpr auto FAILED_CONSTRUCT_SIGNAL_IS_ALPHA_MSG = "Failed to construct Signal. Arg[0] must be isAlpha()";
-constexpr auto FAILED_CONSTRUCT_SIGNAL_IS_DIGIT_MSG = "Failed to construct Signal. Arg[1] must be isDigit()";
+constexpr auto FAILED_CONSTRUCT_SIGNAL_IS_ALPHA_MSG = "Failed to construct Signal. _1[0] must be alpha";
+constexpr auto FAILED_CONSTRUCT_SIGNAL_IS_DIGIT_MSG = "Failed to construct Signal. All after _1[0] must be digits";
 
 constexpr auto FAILED_CONSTRUCT_SIGNAL_MSG = "Failed to construct Signal. _1 must contain at least 2 characters";
 constexpr auto FAILED_LESS_COMPARE_SIGNAL_MSG = "Can't less-compare signals with different labels";
@@ -45,26 +45,33 @@ struct Signal
 		*this = std::move(other);
 	}
 
-	template <typename ST, typename = std::enable_if_t<!std::is_same_v<decltype(std::declval<ST>()[0]), void>>>
-	explicit Signal(ST&& src)
+	explicit Signal(const char* const src)
 		: m_index()
 		, m_label()
 	{
-		if (std::ssize(src) < 2)
-		{
-			throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_MSG);
-		}
+		CheckString(src);
 
-		if (!std::isalpha(src[0]))
-		{
-			throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_IS_ALPHA_MSG);
-		}
-		if (!std::isdigit(src[1]))
-		{
-			throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_IS_DIGIT_MSG);
-		}
+		m_index = static_cast<unsigned int>(std::stoi(std::string(src + 1, std::strlen(src) - 1)));
+		m_label = static_cast<unsigned char>(src[0]);
+	}
 
-		m_index = static_cast<unsigned char>(src[1]) - '0';
+	explicit Signal(const std::string& src)
+		: m_index()
+		, m_label()
+	{
+		CheckString(src);
+
+		m_index = static_cast<unsigned int>(std::stoi(src.c_str() + 1));
+		m_label = static_cast<unsigned char>(src[0]);
+	}
+
+	explicit Signal(const std::string_view& src)
+		: m_index()
+		, m_label()
+	{
+		CheckString(src);
+
+		m_index = static_cast<unsigned int>(std::stoi(std::string(src.data() + 1)));
 		m_label = static_cast<unsigned char>(src[0]);
 	}
 
@@ -121,6 +128,41 @@ struct Signal
 		lhs << rhs.m_label << rhs.m_index;
 
 		return lhs;
+	}
+
+private:
+	template <typename T>
+	void CheckString(T&& src) const
+	{
+		if (!std::isalpha(src[0]))
+		{
+			throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_IS_ALPHA_MSG);
+		}
+
+		if constexpr (std::is_same_v<T, char*>)
+		{
+			if (std::strlen(src) < 2)
+			{
+				throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_MSG);
+			}
+
+			if (!std::all_of(src + 1, src + std::strlen(src) - 1, std::isdigit))
+			{
+				throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_IS_DIGIT_MSG);
+			}
+		}
+		if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>)
+		{
+			if (src.size() < 2)
+			{
+				throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_MSG);
+			}
+
+			if (!std::all_of(src.begin() + 1, src.end(), std::isdigit))
+			{
+				throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_IS_DIGIT_MSG);
+			}
+		}
 	}
 };
 
@@ -194,7 +236,7 @@ struct MealyState
 		}
 		else if constexpr (std::is_same_v<std::string, ST> || std::is_same_v<std::string_view, ST>)
 		{
-			m_signal = std::move(Signal(src.substr(3, 2)));
+			m_signal = std::move(Signal(src.substr(3, src.size() - 3)));
 		}
 	}
 
