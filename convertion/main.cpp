@@ -1,7 +1,6 @@
 #include "include/pch.h"
 
 #include "include/ArgParse/ParseArgs.h"
-#include "include/CSV/csv.hpp"
 
 #include "include/Automata/MealyTableReader.hpp"
 #include "include/Automata/MooreTableReader.hpp"
@@ -27,9 +26,9 @@ int main(int argc, char* argv[])
 			auto mealyTableReader = MealyTableReader{ reader };
 			auto mooreTable = MooreTable{
 				MealyTable{
-					mealyTableReader.GetMealyStates(),
 					mealyTableReader.GetStates(),
-					mealyTableReader.GetTransitions() }
+					mealyTableReader.GetTransitions(),
+					mealyTableReader.GetMealyStates() }
 			};
 			oFS << mooreTable;
 		}
@@ -41,7 +40,7 @@ int main(int argc, char* argv[])
 					mooreTableReader.GetSignals(),
 					mooreTableReader.GetStates(),
 					mooreTableReader.GetTransitions(),
-					mooreTableReader.GetMooreTable() }
+					mooreTableReader.GetMooreStates() }
 			};
 			oFS << mealyTable;
 		}

@@ -19,6 +19,40 @@ constexpr auto FAILED_CONSTRUCT_MEALY_MSG = "Failed to construct Mealy's State. 
 
 }; // namespace state_excps
 
+template <typename T>
+inline void TryParseCharContainer(T&& src)
+{
+	if (!std::isalpha(src[0]))
+	{
+		throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_IS_ALPHA_MSG);
+	}
+
+	if constexpr (std::is_same_v<T, char*>)
+	{
+		if (std::strlen(src) < 2)
+		{
+			throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_MSG);
+		}
+
+		if (!std::all_of(src + 1, src + std::strlen(src) - 1, std::isdigit))
+		{
+			throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_IS_DIGIT_MSG);
+		}
+	}
+	if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>)
+	{
+		if (src.size() < 2)
+		{
+			throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_MSG);
+		}
+
+		if (!std::all_of(src.begin() + 1, src.end(), std::isdigit))
+		{
+			throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_IS_DIGIT_MSG);
+		}
+	}
+}
+
 struct Signal
 {
 	unsigned int m_index{};
@@ -49,7 +83,7 @@ struct Signal
 		: m_index()
 		, m_label()
 	{
-		CheckString(src);
+		TryParseCharContainer(src);
 
 		m_index = static_cast<unsigned int>(std::stoi(std::string(src + 1, std::strlen(src) - 1)));
 		m_label = static_cast<unsigned char>(src[0]);
@@ -59,7 +93,7 @@ struct Signal
 		: m_index()
 		, m_label()
 	{
-		CheckString(src);
+		TryParseCharContainer(src);
 
 		m_index = static_cast<unsigned int>(std::stoi(src.c_str() + 1));
 		m_label = static_cast<unsigned char>(src[0]);
@@ -69,7 +103,7 @@ struct Signal
 		: m_index()
 		, m_label()
 	{
-		CheckString(src);
+		TryParseCharContainer(src);
 
 		m_index = static_cast<unsigned int>(std::stoi(std::string(src.data() + 1)));
 		m_label = static_cast<unsigned char>(src[0]);
@@ -128,41 +162,6 @@ struct Signal
 		lhs << rhs.m_label << rhs.m_index;
 
 		return lhs;
-	}
-
-private:
-	template <typename T>
-	void CheckString(T&& src) const
-	{
-		if (!std::isalpha(src[0]))
-		{
-			throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_IS_ALPHA_MSG);
-		}
-
-		if constexpr (std::is_same_v<T, char*>)
-		{
-			if (std::strlen(src) < 2)
-			{
-				throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_MSG);
-			}
-
-			if (!std::all_of(src + 1, src + std::strlen(src) - 1, std::isdigit))
-			{
-				throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_IS_DIGIT_MSG);
-			}
-		}
-		if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>)
-		{
-			if (src.size() < 2)
-			{
-				throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_MSG);
-			}
-
-			if (!std::all_of(src.begin() + 1, src.end(), std::isdigit))
-			{
-				throw std::invalid_argument(state_excps::FAILED_CONSTRUCT_SIGNAL_IS_DIGIT_MSG);
-			}
-		}
 	}
 };
 
@@ -234,7 +233,7 @@ struct MealyState
 		{
 			m_signal = std::move(Signal(src + 3));
 		}
-		else if constexpr (std::is_same_v<std::string, ST> || std::is_same_v<std::string_view, ST>)
+		else
 		{
 			m_signal = std::move(Signal(src.substr(3, src.size() - 3)));
 		}

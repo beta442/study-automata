@@ -21,7 +21,7 @@ public:
 
 	MealyTable(const MooreTable& mooreTable);
 
-	MealyTable(const MealyStates& mealyStates, const States& states, const Transitions& transitions)
+	MealyTable(const States& states, const Transitions& transitions, const MealyStates& mealyStates)
 		: m_mealyStates(mealyStates)
 		, m_states(states)
 		, m_transitions(transitions)
@@ -134,9 +134,9 @@ public:
 		, m_transitions()
 		, m_mooreTable()
 	{
-		GetSignalsFromMealy(mealyTable);
-		GetStatesFromMealy(mealyTable);
-		GetTransitionsFromMealy(mealyTable);
+		CollectSignalsFromMealy(mealyTable);
+		CollectStatesFromMealy(mealyTable);
+		CollectTransitionsFromMealy(mealyTable);
 		ComputeMooreTableWithMealy(mealyTable);
 	}
 
@@ -155,7 +155,7 @@ public:
 		return m_transitions;
 	}
 
-	const MooreStatesTable& GetMooreTable() const
+	const MooreStatesTable& GetMooreStates() const
 	{
 		return m_mooreTable;
 	}
@@ -198,7 +198,7 @@ public:
 	}
 
 private:
-	void GetSignalsFromMealy(const MealyTable& mealyTable)
+	void CollectSignalsFromMealy(const MealyTable& mealyTable)
 	{
 		auto& mealyStates = mealyTable.GetMealyStates();
 		for (auto& mealyStatesRow : mealyStates)
@@ -210,7 +210,7 @@ private:
 		}
 	}
 
-	void GetStatesFromMealy(const MealyTable& mealyTable)
+	void CollectStatesFromMealy(const MealyTable& mealyTable)
 	{
 		auto signalsQuantity = mealyTable.GetStates().size() * mealyTable.GetTransitions().size();
 
@@ -220,7 +220,7 @@ private:
 		}
 	}
 
-	void GetTransitionsFromMealy(const MealyTable& mealyTable)
+	void CollectTransitionsFromMealy(const MealyTable& mealyTable)
 	{
 		for (auto& transition : mealyTable.GetTransitions())
 		{
@@ -230,6 +230,11 @@ private:
 
 	void ComputeMooreTableWithMealy(const MealyTable& mealyTable)
 	{
+		if (m_states.empty())
+		{
+			throw std::logic_error("Failed to fill Moore table from Mealy.");
+		}
+
 		std::map<State, MealyState> stateToMealyState{};
 
 		{
@@ -269,7 +274,8 @@ private:
 							return state;
 						}
 					}
-					return State{};
+
+					throw std::logic_error("Failed to fill Moore table from Mealy. Not enough states");
 				});
 
 				m_mooreTable[rowIndex++].emplace_back(state);
@@ -299,23 +305,24 @@ void MealyTable::ComputeMealyStatesFromMoore(const MooreTable& mooreTable)
 		m_mealyStates.emplace_back(MealyStateRow());
 	}
 
-	auto& mooreTableContent = mooreTable.GetMooreTable();
+	auto& mooreTableContent = mooreTable.GetMooreStates();
+	const auto itMooreTableSignals = mooreTable.GetSignals().begin(), itEndMooreTableSignals = mooreTable.GetSignals().end();
+
 	auto itStates = m_mealyStates.begin();
 	for (auto& row : mooreTableContent)
 	{
 		for (auto& field : row)
 		{
-			auto itSignals = mooreTable.GetSignals().begin();
-			for (size_t i = 0; i < field.m_state.m_index; ++i)
+			auto itSignal = itMooreTableSignals;
+			std::for_each_n(itMooreTableSignals, field.m_state.m_index, [&itSignal](auto&) {
+				++itSignal;
+			});
+			if (itSignal == itEndMooreTableSignals)
 			{
-				++itSignals;
-				if (itSignals == mooreTable.GetSignals().end())
-				{
-					throw std::out_of_range("Failed to fill Mealy Table from Moore");
-				}
+				throw std::out_of_range("Failed to fill Mealy Table from Moore. Not enough signals");
 			}
 			(*itStates).emplace_back(MealyState{
-				field.m_state, (*itSignals)
+				field.m_state, (*itSignal)
 			});
 		}
 		++itStates;

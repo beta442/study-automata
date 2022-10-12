@@ -44,7 +44,7 @@ public:
 		return m_transitions;
 	}
 
-	const MooreStatesTable& GetMooreTable() const
+	const MooreStatesTable& GetMooreStates() const
 	{
 		return m_mooreTable;
 	}
