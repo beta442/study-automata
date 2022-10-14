@@ -304,20 +304,19 @@ void MealyTable::ComputeMealyStatesFromMoore(const MooreTable& mooreTable)
 	}
 
 	auto& mooreTableContent = mooreTable.GetMooreStates();
-	const auto itMooreTableSignals = mooreTable.GetSignals().begin(), itEndMooreTableSignals = mooreTable.GetSignals().end();
+	const auto& mooreSignals = mooreTable.GetSignals();
 
 	auto itStates = m_mealyStates.begin();
 	for (auto& row : mooreTableContent)
 	{
 		for (auto& field : row)
 		{
-			auto itSignal = itMooreTableSignals + field.m_state.m_index;
-			if (itSignal == itEndMooreTableSignals)
+			if (field.m_state.m_index >= mooreSignals.size())
 			{
 				throw std::out_of_range("Failed to fill Mealy Table from Moore. Not enough signals");
 			}
 			(*itStates).emplace_back(MealyState{
-				field.m_state, (*itSignal) });
+				field.m_state, mooreSignals[field.m_state.m_index] });
 		}
 		++itStates;
 	}
