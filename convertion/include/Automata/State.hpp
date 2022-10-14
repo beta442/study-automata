@@ -141,15 +141,13 @@ struct Signal
 	}
 
 	template <typename T>
-	bool operator<(T&& other) const
+	bool operator<(T&& other) const noexcept
 	{
-		bool labelsAreEqual = (m_label == other.m_label);
-		if (!labelsAreEqual)
+		if (m_label == other.m_label)
 		{
-			throw std::invalid_argument(state_excps::FAILED_LESS_COMPARE_SIGNAL_MSG);
+			return (m_index < other.m_index);
 		}
-
-		return labelsAreEqual && (m_index < other.m_index);
+		return m_label < other.m_label;
 	}
 
 	friend std::ostream& operator<<(std::ostream& lhs, const Signal& rhs)
@@ -218,7 +216,10 @@ struct MealyState
 
 	MealyState() = default;
 
-	template <typename ST>
+	template <
+		typename ST,
+		typename = std::enable_if_t<!std::is_same_v<std::remove_reference_t<ST>, MealyState>>
+	>
 	explicit MealyState(ST&& src)
 		: m_state()
 		, m_signal()
@@ -251,6 +252,26 @@ struct MealyState
 	bool operator==(T&& other) const noexcept
 	{
 		return (m_state == other.m_state) && (m_signal == other.m_signal);
+	}
+
+	template <typename T>
+	bool operator!=(T&& other) const noexcept
+	{
+		return !(*this == other);
+	}
+
+	template <typename T>
+	bool operator<(T&& other) const noexcept
+	{
+		if (m_state < other.m_state)
+		{
+			return true;
+		}
+		if (m_state == other.m_state)
+		{
+			return m_signal < other.m_signal;
+		}
+		return false;
 	}
 
 	friend std::ostream& operator<<(std::ostream& lhs, const MealyState& rhs)

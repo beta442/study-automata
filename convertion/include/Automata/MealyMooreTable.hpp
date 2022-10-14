@@ -108,7 +108,7 @@ private:
 class MooreTable
 {
 public:
-	using Signals = std::list<Signal>;
+	using Signals = std::vector<Signal>;
 	using States = std::list<State>;
 
 	using Transition = State;
@@ -133,9 +133,10 @@ public:
 		, m_states()
 		, m_transitions()
 		, m_mooreTable()
+		, m_stateToMealyState()
 	{
-		CollectSignalsFromMealy(mealyTable);
 		CollectStatesFromMealy(mealyTable);
+		CollectSignalsFromMealy(mealyTable);
 		CollectTransitionsFromMealy(mealyTable);
 		ComputeMooreTableWithMealy(mealyTable);
 	}
@@ -200,23 +201,32 @@ public:
 private:
 	void CollectSignalsFromMealy(const MealyTable& mealyTable)
 	{
-		auto& mealyStates = mealyTable.GetMealyStates();
-		for (auto& mealyStatesRow : mealyStates)
+		m_signals.reserve(m_stateToMealyState.size());
+		for (auto& [_state, _mealyState] : m_stateToMealyState)
 		{
-			for (auto& field : mealyStatesRow)
-			{
-				m_signals.emplace_back(field.m_signal);
-			}
+			m_signals.emplace_back(_mealyState.m_signal);
 		}
 	}
 
 	void CollectStatesFromMealy(const MealyTable& mealyTable)
 	{
-		auto signalsQuantity = mealyTable.GetStates().size() * mealyTable.GetTransitions().size();
-
-		for (unsigned int i = 0; i < signalsQuantity; ++i)
+		std::list<MealyState> uniqueMealyStates{};
+		for (auto& stateList : mealyTable.GetMealyStates())
 		{
-			m_states.emplace_back(State{ 'q', i });
+			for (auto& state : stateList)
+			{
+				uniqueMealyStates.emplace_back(state);
+			}
+		}
+		uniqueMealyStates.sort();
+		uniqueMealyStates.unique();
+
+		unsigned int index = 0;
+		for (auto& uMState : uniqueMealyStates)
+		{
+			auto state = State{ 'q', index++ };
+			m_stateToMealyState.emplace(std::make_pair(state, uMState));
+			m_states.emplace_back(std::move(state));
 		}
 	}
 
@@ -235,20 +245,6 @@ private:
 			throw std::logic_error("Failed to fill Moore table from Mealy.");
 		}
 
-		std::map<State, MealyState> stateToMealyState{};
-
-		{
-			auto& mealyStatesRows = mealyTable.GetMealyStates();
-			auto stateIt = m_states.begin();
-			for (auto& mealyStateRow : mealyStatesRows)
-			{
-				for (auto& mealyState : mealyStateRow)
-				{
-					stateToMealyState.emplace(std::make_pair(*(stateIt++), mealyState));
-				}
-			}
-		}
-
 		{
 			m_mooreTable.reserve(m_transitions.size());
 			for (auto& transition : m_transitions)
@@ -259,29 +255,31 @@ private:
 
 		for (auto& state : m_states)
 		{
-			auto& mealyState = stateToMealyState[state];
+			auto& mealyState = m_stateToMealyState[state];
 			auto& mealyInnerState = mealyState.m_state;
 
 			size_t rowIndex = 0;
 			for (auto& transition : m_transitions)
 			{
 				auto& certainMealyState = mealyTable.GetCertainMealyState(transition, mealyInnerState);
-				auto state = std::invoke([&] {
-					for (auto& [state, mealyState] : stateToMealyState)
+				auto _state = std::invoke([&] {
+					for (auto& [_state, mealyState] : m_stateToMealyState)
 					{
 						if (mealyState == certainMealyState)
 						{
-							return state;
+							return _state;
 						}
 					}
 
 					throw std::logic_error("Failed to fill Moore table from Mealy. Not enough states");
 				});
 
-				m_mooreTable[rowIndex++].emplace_back(state);
+				m_mooreTable[rowIndex++].emplace_back(_state);
 			}
 		}
 	}
+
+	std::map<State, MealyState> m_stateToMealyState;
 
 	Signals m_signals;
 	States m_states;
@@ -313,17 +311,13 @@ void MealyTable::ComputeMealyStatesFromMoore(const MooreTable& mooreTable)
 	{
 		for (auto& field : row)
 		{
-			auto itSignal = itMooreTableSignals;
-			std::for_each_n(itMooreTableSignals, field.m_state.m_index, [&itSignal](auto&) {
-				++itSignal;
-			});
+			auto itSignal = itMooreTableSignals + field.m_state.m_index;
 			if (itSignal == itEndMooreTableSignals)
 			{
 				throw std::out_of_range("Failed to fill Mealy Table from Moore. Not enough signals");
 			}
 			(*itStates).emplace_back(MealyState{
-				field.m_state, (*itSignal)
-			});
+				field.m_state, (*itSignal) });
 		}
 		++itStates;
 	}

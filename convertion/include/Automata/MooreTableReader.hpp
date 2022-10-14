@@ -10,7 +10,7 @@
 class MooreTableReader
 {
 public:
-	using Signals = std::list<Signal>;
+	using Signals = std::vector<Signal>;
 	using States = std::list<State>;
 	using Transitions = std::list<State>;
 
