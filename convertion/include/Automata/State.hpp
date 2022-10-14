@@ -1,6 +1,7 @@
 #ifndef AUTOMATA_STATE_HPP_
 #define AUTOMATA_STATE_HPP_
 
+#include <cstring>
 #include <sstream>
 #include <stdexcept>
 #include <string>

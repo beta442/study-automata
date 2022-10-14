@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(convert)
+project(convert CXX)
 
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_STANDARD 17)
@@ -32,13 +32,15 @@ add_executable(
               ${HEADERS_LIST}
 )
 
-source_group(
-            TREE "${SRC_ROOT_PATH}"
-            PREFIX "Source Files"
-            FILES ${SOURCE_LIST}
-)
-source_group(
-            TREE "${HEADERS_ROOT_PATH}"
-            PREFIX "Header Files"
-            FILES ${HEADERS_LIST}
-)
+if(MSVC)
+    source_group(
+                TREE "${SRC_ROOT_PATH}"
+                PREFIX "Source Files"
+                FILES ${SOURCE_LIST}
+    )
+    source_group(
+                TREE "${HEADERS_ROOT_PATH}"
+                PREFIX "Header Files"
+                FILES ${HEADERS_LIST}
+    )
+endif()
