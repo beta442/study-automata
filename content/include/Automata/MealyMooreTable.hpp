@@ -19,6 +19,9 @@ public:
 	using Transition = State;
 	using Transitions = std::list<Transition>;
 
+	using Signals = std::vector<Signal>;
+	using OutSignalColumns = std::list<Signals>;
+
 	MealyTable(const MooreTable& mooreTable);
 
 	MealyTable(const States& states, const Transitions& transitions, const MealyStates& mealyStates)
@@ -26,6 +29,25 @@ public:
 		, m_states(states)
 		, m_transitions(transitions)
 	{
+	}
+
+	void Minimize()
+	{
+		auto columnIndexesToIgnore{ std::move(GetUnreachableStatesIndexes()) };
+
+		if (!columnIndexesToIgnore.empty())
+		{
+			EraseCertainStates(columnIndexesToIgnore);
+			EraseCertainColumns(columnIndexesToIgnore);
+		}
+
+		/*using Group = State;
+		std::map<State, Group> stateToGroup = 
+		auto signalColumns = CollectSignalColumns();
+
+		signalColumns.unique([columnIndex = 0](const auto& lhs, const auto& rhs) mutable {
+
+		});*/
 	}
 
 	const MealyStates& GetMealyStates() const noexcept
@@ -100,6 +122,91 @@ public:
 private:
 	void ComputeMealyStatesFromMoore(const MooreTable& mooreTable);
 
+	std::vector<size_t> GetUnreachableStatesIndexes() const
+	{
+		std::vector<size_t> result{};
+		result.reserve(m_states.size());
+
+		size_t stateIndex{};
+		for (const auto& state : m_states)
+		{
+			bool hasTransitionFromOtherStates = true;
+			for (const auto& row : m_mealyStates)
+			{
+				hasTransitionFromOtherStates = std::any_of(row.begin(), row.end(),
+					[&state, mealyStateIndex = 0, stateIndex](const auto& mealyState) mutable noexcept {
+						bool areStatesEqual = mealyState.m_state == state;
+						bool isTransitionFromOtherState = mealyStateIndex++ != stateIndex;
+
+						return areStatesEqual && isTransitionFromOtherState;
+					});
+				if (hasTransitionFromOtherStates)
+				{
+					break;
+				}
+			}
+			if (!hasTransitionFromOtherStates)
+			{
+				result.push_back(stateIndex);
+			}
+			++stateIndex;
+		}
+
+		result.shrink_to_fit();
+		return result;
+	}
+
+	void EraseCertainColumns(const std::vector<size_t>& indexes)
+	{
+		if (indexes.empty())
+		{
+			return;
+		}
+
+		for (auto& row : m_mealyStates)
+		{
+			size_t erasedCounter{};
+			for (auto& index : indexes)
+			{
+				auto itToErase = row.begin();
+				std::advance(itToErase, index - erasedCounter++);
+				row.erase(itToErase);
+			}
+		}
+	}
+
+	void EraseCertainStates(const std::vector<size_t>& indexes)
+	{
+		size_t erasedCounter{};
+		for (auto& index : indexes)
+		{
+			auto itToErase = m_states.begin();
+			std::advance(itToErase, index - erasedCounter++);
+			m_states.erase(itToErase);
+		}
+	}
+
+	OutSignalColumns CollectSignalColumns() const
+	{
+		OutSignalColumns res{};
+
+		for (size_t i = 0; i < m_mealyStates.front().size(); ++i)
+		{
+			res.emplace_back(Signals{});
+		}
+
+		for (const auto& row : m_mealyStates)
+		{
+			auto resIt = res.begin();
+			for (const auto& mealyState : row)
+			{
+				(*resIt++).emplace_back(mealyState.m_signal);
+			}
+		}
+
+		return res;
+	}
+
 	MealyStates m_mealyStates;
 	States m_states;
 	Transitions m_transitions;
@@ -139,6 +246,17 @@ public:
 		CollectSignalsFromMealy(mealyTable);
 		CollectTransitionsFromMealy(mealyTable);
 		ComputeMooreTableWithMealy(mealyTable);
+	}
+
+	void Minimize()
+	{
+		auto columnIndexesToIgnore{ std::move(GetUnreachableStatesIndexes()) };
+
+		if (!columnIndexesToIgnore.empty())
+		{
+			EraseCertainStates(columnIndexesToIgnore);
+			EraseCertainColumns(columnIndexesToIgnore);
+		}
 	}
 
 	const Signals& GetSignals() const
@@ -277,6 +395,68 @@ private:
 				m_mooreTable[rowIndex++].emplace_back(_state);
 			}
 		}
+	}
+
+	void EraseCertainColumns(const std::vector<size_t>& columnIndexes)
+	{
+		if (columnIndexes.empty())
+		{
+			return;
+		}
+
+		for (auto& row : m_mooreTable)
+		{
+			size_t erasedCounter{};
+			for (auto& index : columnIndexes)
+			{
+				auto itToErase = row.begin();
+				std::advance(itToErase, index - erasedCounter++);
+				row.erase(itToErase);
+			}
+		}
+	}
+
+	void EraseCertainStates(const std::vector<size_t>& statesIndexes)
+	{
+		size_t erasedCounter{};
+		for (auto& index : statesIndexes)
+		{
+			auto itToErase = m_states.begin();
+			std::advance(itToErase, index - erasedCounter++);
+			m_states.erase(itToErase);
+		}
+	}
+
+	std::vector<size_t> GetUnreachableStatesIndexes() const
+	{
+		std::vector<size_t> result{};
+
+		size_t stateIndex{};
+		for (const auto& state : m_states)
+		{
+			bool hasTransitionFromOtherStates = true;
+			for (const auto& row : m_mooreTable)
+			{
+				hasTransitionFromOtherStates = std::any_of(row.begin(), row.end(),
+					[&state, mealyStateIndex = 0, stateIndex](const auto& mooreState) mutable noexcept {
+						bool areStatesEqual = mooreState.m_state == state;
+						bool isTransitionFromOtherState = mealyStateIndex++ != stateIndex;
+
+						return areStatesEqual && isTransitionFromOtherState;
+					});
+				if (hasTransitionFromOtherStates)
+				{
+					break;
+				}
+			}
+			if (!hasTransitionFromOtherStates)
+			{
+				result.push_back(stateIndex);
+			}
+			++stateIndex;
+		}
+
+		return result;
 	}
 
 	std::map<State, MealyState> m_stateToMealyState;
