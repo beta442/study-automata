@@ -33,13 +33,7 @@ public:
 
 	void Minimize()
 	{
-		auto columnIndexesToIgnore{ std::move(GetUnreachableStatesIndexes()) };
-
-		if (!columnIndexesToIgnore.empty())
-		{
-			EraseCertainStates(columnIndexesToIgnore);
-			EraseCertainColumns(columnIndexesToIgnore);
-		}
+		RemoveUnreachableStates();
 
 		/*using Group = State;
 		std::map<State, Group> stateToGroup = 
@@ -83,10 +77,7 @@ public:
 		auto columnIndex = std::distance(m_states.begin(), columnIt);
 
 		auto begIt = m_mealyStates[rowIndex].begin();
-		for (size_t i = 0; i < columnIndex; ++i)
-		{
-			++begIt;
-		}
+		std::advance(begIt, columnIndex);
 
 		return *begIt;
 	}
@@ -166,7 +157,7 @@ private:
 		for (auto& row : m_mealyStates)
 		{
 			size_t erasedCounter{};
-			for (auto& index : indexes)
+			for (const auto& index : indexes)
 			{
 				auto itToErase = row.begin();
 				std::advance(itToErase, index - erasedCounter++);
@@ -178,7 +169,7 @@ private:
 	void EraseCertainStates(const std::vector<size_t>& indexes)
 	{
 		size_t erasedCounter{};
-		for (auto& index : indexes)
+		for (const auto& index : indexes)
 		{
 			auto itToErase = m_states.begin();
 			std::advance(itToErase, index - erasedCounter++);
@@ -205,6 +196,17 @@ private:
 		}
 
 		return res;
+	}
+
+	void RemoveUnreachableStates()
+	{
+		auto columnIndexesToIgnore{ std::move(GetUnreachableStatesIndexes()) };
+
+		if (!columnIndexesToIgnore.empty())
+		{
+			EraseCertainStates(columnIndexesToIgnore);
+			EraseCertainColumns(columnIndexesToIgnore);
+		}
 	}
 
 	MealyStates m_mealyStates;
@@ -250,13 +252,7 @@ public:
 
 	void Minimize()
 	{
-		auto columnIndexesToIgnore{ std::move(GetUnreachableStatesIndexes()) };
-
-		if (!columnIndexesToIgnore.empty())
-		{
-			EraseCertainStates(columnIndexesToIgnore);
-			EraseCertainColumns(columnIndexesToIgnore);
-		}
+		RemoveUnreachableStates();
 	}
 
 	const Signals& GetSignals() const
@@ -407,7 +403,7 @@ private:
 		for (auto& row : m_mooreTable)
 		{
 			size_t erasedCounter{};
-			for (auto& index : columnIndexes)
+			for (const auto& index : columnIndexes)
 			{
 				auto itToErase = row.begin();
 				std::advance(itToErase, index - erasedCounter++);
@@ -416,10 +412,21 @@ private:
 		}
 	}
 
+	void EraseCertainSignals(const std::vector<size_t>& statesIndexes)
+	{
+		size_t erasedCounter{};
+		for (const auto& index : statesIndexes)
+		{
+			auto itToErase = m_signals.begin();
+			std::advance(itToErase, index - erasedCounter++);
+			m_signals.erase(itToErase);
+		}
+	}
+
 	void EraseCertainStates(const std::vector<size_t>& statesIndexes)
 	{
 		size_t erasedCounter{};
-		for (auto& index : statesIndexes)
+		for (const auto& index : statesIndexes)
 		{
 			auto itToErase = m_states.begin();
 			std::advance(itToErase, index - erasedCounter++);
@@ -457,6 +464,18 @@ private:
 		}
 
 		return result;
+	}
+
+	void RemoveUnreachableStates()
+	{
+		auto columnIndexesToIgnore{ std::move(GetUnreachableStatesIndexes()) };
+
+		if (!columnIndexesToIgnore.empty())
+		{
+			EraseCertainSignals(columnIndexesToIgnore);
+			EraseCertainStates(columnIndexesToIgnore);
+			EraseCertainColumns(columnIndexesToIgnore);
+		}
 	}
 
 	std::map<State, MealyState> m_stateToMealyState;
